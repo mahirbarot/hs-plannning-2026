@@ -1,17 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Star, Quote } from 'lucide-react';
-import { firebaseService } from '../services/firebaseService';
+import { client, isSanityConfigured } from '../sanityClient';
 import { Review } from '../types';
+import { DEFAULT_REVIEWS } from '../utils';
 
 const Reviews = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
-    const unsubscribe = firebaseService.subscribeToCollection('reviews', (data) => {
-      setReviews(data);
-    }, 'name');
-    return () => unsubscribe();
+    if (!isSanityConfigured) {
+      setReviews(DEFAULT_REVIEWS as any);
+      return;
+    }
+    const query = '*[_type == "review"]';
+    client.fetch(query).then((data) => {
+      if (data && data.length > 0) {
+        setReviews(data);
+      } else {
+        setReviews(DEFAULT_REVIEWS as any);
+      }
+    }).catch(() => {
+      setReviews(DEFAULT_REVIEWS as any);
+    });
   }, []);
 
   return (
@@ -32,7 +43,7 @@ const Reviews = () => {
         <div className="grid md:grid-cols-3 gap-8">
           {reviews.map((review, idx) => (
             <motion.div
-              key={review.id}
+              key={review._id}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}

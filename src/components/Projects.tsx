@@ -1,18 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { firebaseService } from '../services/firebaseService';
+import { client, urlFor, isSanityConfigured } from '../sanityClient';
 import { Project } from '../types';
-import { cn } from '../utils';
+import { cn, DEFAULT_PROJECTS } from '../utils';
 
 const Projects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeTab, setActiveTab] = useState<'success' | 'progressing' | 'upcoming'>('success');
 
   useEffect(() => {
-    const unsubscribe = firebaseService.subscribeToCollection('projects', (data) => {
-      setProjects(data);
-    }, 'title'); // Sort by title for now
-    return () => unsubscribe();
+    if (!isSanityConfigured) {
+      setProjects(DEFAULT_PROJECTS as any);
+      return;
+    }
+    const query = '*[_type == "project"]';
+    client.fetch(query).then((data) => {
+      if (data && data.length > 0) {
+        setProjects(data);
+      } else {
+        setProjects(DEFAULT_PROJECTS as any);
+      }
+    }).catch(() => {
+      setProjects(DEFAULT_PROJECTS as any);
+    });
   }, []);
 
   const filteredProjects = projects.filter(p => p.category === activeTab);
@@ -62,7 +72,7 @@ const Projects = () => {
           <AnimatePresence mode="popLayout">
             {filteredProjects.map((project, idx) => (
               <motion.div
-                key={project.id}
+                key={project._id}
                 layout
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -71,7 +81,7 @@ const Projects = () => {
                 className="group relative aspect-[4/5] overflow-hidden bg-white/5"
               >
                 <img
-                  src={project.imageUrl}
+                  src={urlFor(project.image).url()}
                   alt={project.title}
                   className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 grayscale group-hover:grayscale-0"
                   referrerPolicy="no-referrer"

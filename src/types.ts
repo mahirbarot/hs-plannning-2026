@@ -1,21 +1,21 @@
 export interface HeroSlide {
-  id: string;
-  imageUrl: string;
+  _id: string;
+  image: any;
   tagline: string;
   order: number;
 }
 
 export interface Service {
-  id: string;
+  _id: string;
   title: string;
   description: string;
   order: number;
 }
 
 export interface Project {
-  id: string;
+  _id: string;
   title: string;
-  imageUrl: string;
+  image: any;
   location: string;
   date: string;
   description: string;
@@ -23,36 +23,15 @@ export interface Project {
 }
 
 export interface Review {
-  id: string;
+  _id: string;
   name: string;
   review: string;
   rating: number;
 }
 
 export interface ContactInfo {
-  id: string;
+  _id: string;
   email: string;
   whatsapp: string;
   name: string;
-}
-
-export type OperationType = 'create' | 'update' | 'delete' | 'list' | 'get' | 'write';
-
-export interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string;
-    email?: string;
-    emailVerified?: boolean;
-    isAnonymous?: boolean;
-    tenantId?: string;
-    providerInfo: {
-      providerId: string;
-      displayName: string;
-      email: string;
-      photoUrl: string;
-    }[];
-  }
 }

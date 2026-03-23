@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Minus, ArrowRight } from 'lucide-react';
-import { firebaseService } from '../services/firebaseService';
+import { client, isSanityConfigured } from '../sanityClient';
 import { Service } from '../types';
 import { DEFAULT_SERVICES } from '../utils';
 
@@ -10,15 +10,20 @@ const Services = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = firebaseService.subscribeToCollection('services', (data) => {
-      if (data.length === 0) {
-        // If no services in DB, use defaults (for prototype)
-        setServices(DEFAULT_SERVICES.map((s, idx) => ({ id: `default-${idx}`, ...s, order: idx })));
+    if (!isSanityConfigured) {
+      setServices(DEFAULT_SERVICES.map((s, idx) => ({ _id: `default-${idx}`, ...s, order: idx })));
+      return;
+    }
+    const query = '*[_type == "service"] | order(order asc)';
+    client.fetch(query).then((data) => {
+      if (!data || data.length === 0) {
+        setServices(DEFAULT_SERVICES.map((s, idx) => ({ _id: `default-${idx}`, ...s, order: idx })));
       } else {
         setServices(data);
       }
+    }).catch(() => {
+      setServices(DEFAULT_SERVICES.map((s, idx) => ({ _id: `default-${idx}`, ...s, order: idx })));
     });
-    return () => unsubscribe();
   }, []);
 
   return (
@@ -50,7 +55,7 @@ const Services = () => {
           <div className="space-y-4">
             {services.map((service, idx) => (
               <motion.div
-                key={service.id}
+                key={service._id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -58,7 +63,7 @@ const Services = () => {
                 className="border-b border-black/10"
               >
                 <button
-                  onClick={() => setExpandedId(expandedId === service.id ? null : service.id)}
+                  onClick={() => setExpandedId(expandedId === service._id ? null : service._id)}
                   className="w-full py-8 flex items-center justify-between group"
                 >
                   <div className="flex items-center gap-8">
@@ -70,12 +75,12 @@ const Services = () => {
                     </span>
                   </div>
                   <div className="w-10 h-10 rounded-full border border-black/10 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-all duration-500">
-                    {expandedId === service.id ? <Minus size={16} /> : <Plus size={16} />}
+                    {expandedId === service._id ? <Minus size={16} /> : <Plus size={16} />}
                   </div>
                 </button>
 
                 <AnimatePresence>
-                  {expandedId === service.id && (
+                  {expandedId === service._id && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}

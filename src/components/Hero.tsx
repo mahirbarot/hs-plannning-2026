@@ -1,19 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight } from 'lucide-react';
-import { firebaseService } from '../services/firebaseService';
+import { client, urlFor, isSanityConfigured } from '../sanityClient';
 import { HeroSlide } from '../types';
-import { cn } from '../utils';
+import { cn, DEFAULT_HERO } from '../utils';
 
 const Hero = () => {
   const [slides, setSlides] = useState<HeroSlide[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
-    const unsubscribe = firebaseService.subscribeToCollection('hero', (data) => {
-      setSlides(data);
+    if (!isSanityConfigured) {
+      setSlides(DEFAULT_HERO as any);
+      return;
+    }
+    const query = '*[_type == "hero"] | order(order asc)';
+    client.fetch(query).then((data) => {
+      if (data && data.length > 0) {
+        setSlides(data);
+      } else {
+        setSlides(DEFAULT_HERO as any);
+      }
+    }).catch(() => {
+      setSlides(DEFAULT_HERO as any);
     });
-    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -45,7 +55,7 @@ const Hero = () => {
         >
           <div className="absolute inset-0 bg-black/40 z-10" />
           <img
-            src={slides[currentSlide].imageUrl}
+            src={urlFor(slides[currentSlide].image).url()}
             alt="Hero Background"
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
